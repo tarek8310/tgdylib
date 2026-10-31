@@ -1,0 +1,37 @@
+name: Build Telegram dylib
+on:
+  workflow_dispatch:
+  push:
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Write source
+        run: |
+          cat > tg.m <<'SRC'
+          #import <UIKit/UIKit.h>
+
+          __attribute__((constructor))
+          static void init() {
+            [[NSNotificationCenter defaultCenter]
+              addObserverForName:UIApplicationDidBecomeActiveNotification
+              object:nil queue:NSOperationQueue.mainQueue
+              usingBlock:^(NSNotification *n) {
+                static BOOL opened = NO;
+                if (opened) return;
+                opened = YES;
+                NSURL *u = [NSURL URLWithString:@"https://t.me/fluorite_manager"];
+                [UIApplication.sharedApplication openURL:u
+                  options:@{} completionHandler:nil];
+              }];
+          }
+          SRC
+      - name: Build
+        run: |
+          xcrun -sdk iphoneos clang -arch arm64 -dynamiclib \
+            -framework UIKit -framework Foundation \
+            -miphoneos-version-min=13.0 -o Telegram.dylib tg.m
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Telegram-dylib
+          path: Telegram.dylib
