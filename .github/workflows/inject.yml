@@ -45,11 +45,14 @@ jobs:
           EXE=$(/usr/libexec/PlistBuddy -c "Print :CFBundleExecutable" "$APP/Info.plist")
           mkdir -p "$APP/Frameworks"
           cp ../Telegram.dylib "$APP/Frameworks/Telegram.dylib"
+          find "$APP" -iname "Mriosnhat*" -delete
           python3 - "$APP/$EXE" <<'PY'
           import sys, lief
           p = sys.argv[1]
           fat = lief.MachO.parse(p)
           for b in fat:
+              for n in [l.name for l in b.libraries if "Mriosnhat" in l.name]:
+                  b.remove_library(n)
               b.add_library("@executable_path/Frameworks/Telegram.dylib")
           fat.write(p)
           PY
