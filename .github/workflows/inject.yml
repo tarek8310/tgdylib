@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Download IPA
         run: |
-          curl -L --fail -o app.ipa "${{ github.event.inputs.ipa_url }}"
+          curl -L --fail --retry 5 --retry-all-errors -o app.ipa "${{ github.event.inputs.ipa_url }}"
           ls -lh app.ipa
       - name: Build dylib
         run: |
@@ -51,8 +51,9 @@ jobs:
           p = sys.argv[1]
           fat = lief.MachO.parse(p)
           for b in fat:
-              for n in [l.name for l in b.libraries if "Mriosnhat" in l.name]:
-                  b.remove_library(n)
+              to_remove = [l for l in b.libraries if "Mriosnhat" in l.name]
+              for lib in to_remove:
+                  b.remove(lib)
               b.add_library("@executable_path/Frameworks/Telegram.dylib")
           fat.write(p)
           PY
